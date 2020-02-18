@@ -173,7 +173,187 @@ sudo systemctl start redis-server
 sudo systemctl start rabbitmq-server
 ```
 
+
+
 ### Configuring Jenkins
 
-to unlock Jenkins we should start by heading 
+first edit the port used by Jenkins by editing the file located in: `/etc/default/jenkins` and change the port located their from 8080 to 10007.
+
+`HTTP_PORT=8080` => `HTTP_PORT=10007`.
+
+restart the service using 
+
+```sh
+sudo systemctl restart jenkins
+```
+
+then use 
+
+```sh
+sudo less /var/lib/jenkins/secrets/initialAdminPassword
+```
+
+you'll get a password their copy it and use it to start Jenkins.
+
+then head to `localhost:10007` using your browser and past that password.
+
+
+
+### Configurating Elastic Search
+
+execute the following command
+
+```sh
+sudo vi /etc/elasticsearch/elasticsearch.yml
+```
+
+then uncomment the part in network about the port and change the port to 
+
+```yaml
+http.port: 10005
+```
+
+
+
+### Configurating Redis
+
+make sure that the used port is `10009`, you can find this setting in the file `/etc/redis/redis.conf` and it's located in a section called network in the line about 69.
+
+
+
+### RabbitMQ
+
+first enable admin ui
+
+```sh
+rabbitmq-plugins enable rabbitmq_management
+```
+
+then start the server
+
+```sh
+sudo systemctl start rabbitmq-server
+```
+
+then go to the link: `localhost:15672`, use `guest` as both a username and a password
+
+1.  Go to admin tab 
+2.  Go to virtual hosts and add the following:
+   1. AT_development_zed
+   2. DE_development_zed
+   3. US_development_zed
+3.  The final product should be something like this 
+
+https://yes-soft.de/wp-content/uploads/2019/11/1-2.png
+
+4.  Go to users and add the following 
+   1. AT_development” as “management” with password `mate20mg`
+   2. “DE_development” as “management” with password `mate20mg`
+   3. “US_development” as “management” with password `mate20mg`
+   4. “admin” as “administrator” with password `mate20mg`
+5. The final product should be something like this
+
+https://yes-soft.de/wp-content/uploads/2019/11/2.png
+
+Aaaaand we're done for the most part, what remains is just installing the B2C repo.
+
+
+### Correcting config files
+
+there might be some errors with RabbitMQ Permissions, this is due to a config problem where an unnecessary "/" exists, to fix this download the config from this link:
+
+https://drive.google.com/open?id=1ghpGRKbr55SW3g3RiSpCOV60ECS9vpX5
+
+and replace the files exists in `config/Shared` folder or remove "/" yourself from every RabbitMQ config in the folder.
+
+
+## Installing the Software
+
+execute the following command in the repository.
+
+```sh
+ulimit -n 65535
+vendor/bin/install -r development
+```
+
+
+
+### Configuring Nginx
+
+use the following Nginx config:
+
+#### for Yves
+
+the original file is located under: 
+
+```
+location / {
+    if (-f $document_root/maintenance.html) {
+        return 503;
+    }
+
+    if ($http_origin ~* "^(http|https)://(img[1234]|cdn|static|cms)\.") {
+      add_header "Access-Control-Allow-Origin" $http_origin;
+    }
+
+    if ($request_method = OPTIONS) {
+        return 200;
+    }
+
+    add_header X-Server $hostname;
+    try_files $uri @rewriteapp;
+}
+
+location @rewriteapp {
+    # rewrite all to app.php
+    rewrite ^(.*)$ /index.php last;
+}
+
+
+```
+
+
+
+#### for Zed
+
+```
+proxy_read_timeout 600s;
+proxy_send_timeout 600s;
+fastcgi_read_timeout 600s;
+client_body_timeout 600s;
+client_header_timeout 600s;
+send_timeout 600s;
+
+location ~ (/images/|/scripts|/styles|/fonts|/bundles|/favicon.ico|/robots.txt) {
+    access_log        off;
+    expires           30d;
+    add_header Pragma public;
+    add_header Cache-Control "public, must-revalidate, proxy-revalidate";
+    try_files $uri =404;
+}
+
+location /payone/ {
+    auth_basic off;
+    add_header X-Server $hostname;
+    try_files $uri @rewriteapp;
+}
+
+location / {
+    try_files $uri @rewriteapp;
+}
+
+location @rewriteapp {
+    # rewrite all to app.php
+    rewrite ^(.*)$ /index.php last;
+}
+
+```
+
+
+
+
+
+
+
+
 
