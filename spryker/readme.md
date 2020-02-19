@@ -221,9 +221,27 @@ make sure that the used port is `10009`, you can find this setting in the file `
 
 
 
-### RabbitMQ
+### Configurating PostgreSQL
 
-first enable admin ui
+1. start the service using `sudo systemctl start postgresql` 
+2. login to the root using `sudo su -` 
+3. login to `postgresql` using `postgres` user using `sudo su - postgres`
+4. in my case i had to add 2 users to the list and grant them a `superuser` privileges
+
+```sql
+CREATE USER root WITH PASSWORD '123';
+CREATE USER development WITH PASSWORD 'mate20mg';
+ALTER USER root WITH SUPERUSER;
+ALTER USER development WITH SUPERUSER;
+```
+
+note that when the installation asks for a password it means the `root` user password.
+
+
+
+### Configuring RabbitMQ
+
+first enable admin UI
 
 ```sh
 rabbitmq-plugins enable rabbitmq_management
@@ -267,6 +285,20 @@ https://drive.google.com/open?id=1ghpGRKbr55SW3g3RiSpCOV60ECS9vpX5
 and replace the files exists in `config/Shared` folder or remove "/" yourself from every RabbitMQ config in the folder.
 
 
+
+### Configuring NPM
+
+the version installed with NVM is 5 but Spryker needs npm 6 to install, that's why we should execute
+
+```sh
+npm i npm@6.4.1 -g
+```
+
+for the installation to work :)
+
+
+
+
 ## Installing the Software
 
 execute the following command in the repository.
@@ -278,13 +310,17 @@ vendor/bin/install -r development
 
 
 
+this will take 5-10 minutes based on your system setup.
+
+
+
 ### Configuring Nginx
 
 use the following Nginx config:
 
 #### for Yves
 
-the original file is located under: 
+the original file is located under:  https://documentation.spryker.com/docs/installation-guide-b2c 
 
 ```
 location / {
